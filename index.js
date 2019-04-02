@@ -13,7 +13,7 @@ form.addEventListener('submit', function(e){
 
   const fieldValue = field.value.trim();
 
-  if (!fieldValue) { // Забыла, что тут можно еще добавить
+  if (!fieldValue) { // Забыла, что тут можно еще добавить [&& !fieldValue.length]?
     return;
   }
 
