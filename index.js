@@ -1,3 +1,4 @@
+"use strict";
 // Import stylesheets
 import './style.css';
 
@@ -9,6 +10,7 @@ const list = document.getElementById('list');
 
 const button = document.getElementById('button-remove');
 const listArray = [];
+const itemObj = {};
 
 // Добавляем события
 
@@ -22,15 +24,20 @@ form.addEventListener('submit', function(e){
     return;
   }
 
-  listArray.push(field.value);
+  itemObj.text = fieldValue;
+  itemObj.createdDate = new Date();
+  itemObj.expiredDate = dateField.valueAsDate;
 
-  addItem(listArray);
+  listArray.push(itemObj);
 
+  addItem(listArray.slice(-1)[0]);
+
+  // Очищение полей
   field.value = '';
+  dateField.value = '';
 
+  // Фильтр
   filterList();
-
-  
 });
 
 // Поиск совпадения
@@ -40,12 +47,26 @@ field.addEventListener('input', function(){
   
 });
 
+
+// Проверка на актуальность
+const tm = setInterval(function() {
+  console.log(1);
+
+  for (let i = 0; i < listArray.length; i++) {
+    if (listArray[i].expiredDate - new Date() < 24*60*60*1000) { 
+      list.children[i].style.background = 'red';  
+    }
+  }
+}, 1000);
+
+
 // А тут новый элемент списка создадим и добавим
-function addItem(arr) {
+function addItem(object) {
   const newItem = document.createElement('li');
   const buttonRemove = document.createElement('button');
   const createdDateContainer = document.createElement('div')
-  const createdDate = new Date(); 
+  const remainingTime = document.createElement('div');
+  const createdDate = object.createdDate; 
   const createdYear = createdDate.getFullYear();
   const createdMonth = createdDate.getMonth();
   const createdDay = createdDate.getDate();
@@ -53,23 +74,19 @@ function addItem(arr) {
 
 
   newItem.className = 'list-group-item';
-  newItem.innerText = arr.slice(-1);
+  newItem.innerText = object.text;
 
   list.appendChild(newItem);
 
   // Добавляем кнопку удаления
-  
-  buttonRemove.className = 'button-remove';
-  buttonRemove.innerText = 'Удалить';
-
-  newItem.appendChild(buttonRemove);
-
   buttonRemove.addEventListener('click', function(){
     this.closest('.list-group-item').remove();
   });
+  buttonRemove.className = 'button-remove';
+  buttonRemove.innerText = 'Удалить';
+  newItem.appendChild(buttonRemove);
 
-  // Дата создания
-  newItem.appendChild(createdDateContainer);
+  // Дата создания ?? надо в отдельную функцию выносить ??
   if (createdDay < 10) {
     createdDay = '0' + createdDay;
   }
@@ -80,21 +97,14 @@ function addItem(arr) {
   const dateText = 'Создано: ' + createdDay + '.' + createdMonth + '.' + createdYear;
   createdDateContainer.innerText = dateText;
   createdDateContainer.className = 'created-date';
+  newItem.appendChild(createdDateContainer);
   
 
   // Добавление оставшегося времени ?? надо в отдельную функцию выносить ??
-
-  const remainingTime = document.createElement('div');
-  remainingTime.innerText = getRemainingTime(dateField.valueAsDate);
-  remainingTime.className = 'remaining-time'
+  const remainingTimeArray = dhm(itemObj.expiredDate - new Date());
+  remainingTime.innerText = 'Осталось ' + remainingTimeArray[0] + 'д. ' + remainingTimeArray[1] + 'ч. ' + remainingTimeArray[2] + 'м. ' + remainingTimeArray[3] + 'с. ';
+  remainingTime.className = 'remaining-time' 
   newItem.appendChild(remainingTime);
-}
-
-// Получить оставшееся время
-function getRemainingTime(date) {
-    const remainingTimeArray = dhm(date - new Date());
-    
-    return 'Осталось ' + remainingTimeArray[0] + 'д. ' + remainingTimeArray[1] + 'ч. ' + remainingTimeArray[2] + 'м. ' + remainingTimeArray[3] + 'с. ';
 }
 
 
