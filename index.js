@@ -10,7 +10,7 @@ const list = document.getElementById('list');
 
 const button = document.getElementById('button-remove');
 const listArray = [];
-const itemObj = {};
+
 
 // Добавляем события
 
@@ -19,18 +19,19 @@ form.addEventListener('submit', function(e){
   e.preventDefault();
 
   const fieldValue = field.value.trim();
+  const itemObj = {};
   
-  if (!fieldValue) { // Забыла, что тут можно еще добавить [&& !fieldValue.length]?
+  if (!fieldValue) { 
     return;
   }
-
+  
   itemObj.text = fieldValue;
   itemObj.createdDate = new Date();
   itemObj.expiredDate = dateField.valueAsDate;
 
   listArray.push(itemObj);
 
-  addItem(listArray.slice(-1)[0]);
+  addItem(itemObj);
 
   // Очищение полей
   field.value = '';
@@ -38,6 +39,8 @@ form.addEventListener('submit', function(e){
 
   // Фильтр
   filterList();
+
+  console.log(itemObj);
 });
 
 // Поиск совпадения
@@ -48,20 +51,16 @@ field.addEventListener('input', function(){
 });
 
 
-// Проверка на актуальность
+// Апдейт актуальности
 const tm = setInterval(function() {
-  console.log(1);
 
-  for (let i = 0; i < listArray.length; i++) {
-    if (listArray[i].expiredDate - new Date() < 24*60*60*1000) { 
-      list.children[i].style.background = 'red';  
-    }
-  }
-}, 1000);
+  updateDeadline();
 
+}, 600); 
 
 // А тут новый элемент списка создадим и добавим
 function addItem(object) {
+  const itemObj = object;
   const newItem = document.createElement('li');
   const buttonRemove = document.createElement('button');
   const createdDateContainer = document.createElement('div')
@@ -78,39 +77,86 @@ function addItem(object) {
 
   list.appendChild(newItem);
 
+  listArray[listArray.length - 1].node = newItem;
+
   // Добавляем кнопку удаления
-  buttonRemove.addEventListener('click', function(){
+
+  function click(e){
     this.closest('.list-group-item').remove();
-  });
+  }
+
+  buttonRemove.onclick = function(e) {
+    this.closest('.list-group-item').remove();
+  }
   buttonRemove.className = 'button-remove';
   buttonRemove.innerText = 'Удалить';
   newItem.appendChild(buttonRemove);
 
-  // Дата создания ?? надо в отдельную функцию выносить ??
-  if (createdDay < 10) {
-    createdDay = '0' + createdDay;
-  }
-  createdMonth = createdMonth + 1;
-  if (createdMonth < 10) {
-    createdMonth = '0' + createdMonth;
-  }
-  const dateText = 'Создано: ' + createdDay + '.' + createdMonth + '.' + createdYear;
+  // Дата создания
+  
+  createdMonth = formatMonth(createdMonth);
+  const dateText = `Создано: ${createdDay}.${createdMonth}.${createdYear}`;
   createdDateContainer.innerText = dateText;
   createdDateContainer.className = 'created-date';
   newItem.appendChild(createdDateContainer);
   
 
-  // Добавление оставшегося времени ?? надо в отдельную функцию выносить ??
-  const remainingTimeArray = dhm(itemObj.expiredDate - new Date());
-  remainingTime.innerText = 'Осталось ' + remainingTimeArray[0] + 'д. ' + remainingTimeArray[1] + 'ч. ' + remainingTimeArray[2] + 'м. ' + remainingTimeArray[3] + 'с. ';
+  // Добавление оставшегося времени
   remainingTime.className = 'remaining-time' 
   newItem.appendChild(remainingTime);
+
+  updateDeadline();
 }
 
+// Formatting day 
+function formatDay(createdDay) {
+  if (createdDay < 10) {
+    createdDay = `0${createdDay}`;
+  }
+
+  return createdDay;
+}
+
+// Formatting month 
+function formatMonth(createdMonth) {
+  createdMonth = createdMonth + 1;
+  if (createdMonth < 10) {
+    createdMonth = `0${createdMonth}`;
+  }
+
+  return createdMonth;
+}
+
+// Deadline 
+function calcRmainingTime(deadline) {
+  const remainingTimeArray = dhm(deadline - new Date());
+  return `Осталось ${remainingTimeArray[0]}д. ${remainingTimeArray[1]}ч. ${remainingTimeArray[2]}м. ${remainingTimeArray[3]}с.`;
+}
+function updateDeadline() {
+  const deadlines = [];
+
+  // Пройтись по всем итемам и обновить оставшееся время
+  for (let i = 0; i < listArray.length; i++) {
+    const node = listArray[i].node;
+    const deadline = node.lastElementChild;
+    const exp = listArray[i].expiredDate;
+    deadline.innerText = calcRmainingTime(exp);
+
+    if (checkDeadline(exp)) { 
+      node.style.background = 'pink';  
+    }
+  }
+}
+
+// Проверка актуальности
+function checkDeadline(deadline) {
+  var dayMs = 24*60*60*1000;
+  return deadline - new Date() < dayMs;
+}
 
 // Filter
 function filterList() {
-  const listItems = document.querySelectorAll('#list > li'); // ?? почему это тут надо объявлять, а глобально не работает ??
+  const listItems = document.querySelectorAll('#list > li');
 
   listItems.forEach(function(item, i){
     const text = listItems[i].innerText.toUpperCase();
